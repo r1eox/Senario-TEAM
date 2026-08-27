@@ -182,7 +182,8 @@
   <div id="toast" class="toast">تم النسخ بنجاح!</div>
 
   <script>
-    const SCENARIO_OUT_ROLE = "<@&1480638365937434808>";
+    const OUT_OF_SERVICE_ROLE_ID = "1247180712038371369";
+    const OUT_OF_SERVICE_ROLE_MENTION = `<@&${OUT_OF_SERVICE_ROLE_ID}>`;
 
     function removeFancyFont(text) {
       if (!text) return '';
@@ -294,13 +295,19 @@
           if (rawKey && rawKey.length >= 17) idTracker[rawKey] = (idTracker[rawKey] || 0) + 1;
 
           const cleanRank = cleanAndStandardizeRank(data.rank);
+          const evalText = (data.finalEval || '').trim();
+          const matchedOutRoleMention = evalText.match(/<@&\d{17,20}>/);
+          const hasOutByKeyword = evalText.includes('خارج خدمة') || evalText.includes('خارج الخدمة') || evalText.includes('إجازة');
+          const hasOutByRoleMention = /<@&\d{17,20}>/.test(evalText);
+          const hasOutByConfiguredRole = evalText.includes(OUT_OF_SERVICE_ROLE_ID) || evalText.includes(OUT_OF_SERVICE_ROLE_MENTION);
+          const isOutOfService = hasOutByKeyword || hasOutByRoleMention || hasOutByConfiguredRole;
           let finalRating = data.finalEval || 'سيء';
 
           if (finalRating.includes('جديد')) {
             countNew++;
-          } else if (finalRating.includes('خارج خدمة') || finalRating.includes('خارج الخدمة') || finalRating.includes('إجازة')) {
+          } else if (isOutOfService) {
             countOut++;
-            finalRating = SCENARIO_OUT_ROLE;
+            finalRating = matchedOutRoleMention ? matchedOutRoleMention[0] : OUT_OF_SERVICE_ROLE_MENTION;
           } else if (finalRating.includes('سيء') || finalRating.includes('سئ')) {
             countBad++;
           } else if (['جيد جدا', 'ممتاز', 'ممتاز جدا'].some(r => finalRating.includes(r))) {
